@@ -153,9 +153,180 @@ ui <- dashboardPage(
 
 dt1 <- read.csv("C:/Users/acer/OneDrive/Documents/R-ChuyenDe/cuoiki/equipment_Ukraine_Russia_War.csv")
 dt2 <- read.csv("C:/Users/acer/OneDrive/Documents/R-ChuyenDe/cuoiki/russia_losses_personnel.csv")  
-  
+dt3 <- read.csv("C:/Users/acer/OneDrive/Documents/R-ChuyenDe/cuoiki/add_data.csv") 
 
 server <- function(input, output) {
+  
+  
+  
+  # 1.1 Trích xuất các biến liên quan
+  
+  #date: ngày xảy ra war giữa UKraina với Russia
+  #day: thứ tự ngày từ ngày 1...đến ngày cuối
+  #aircraft: số lượng phi cơ sử dụng
+  #helicopter: số lượng máy bay trực thăng sử dụng
+  #tank: so lương xe tang được sử dụng, là phương tiện chiến đấu bọc thép được dùng làm vũ khí tấn công chính trong chiến đấu trên bộ,
+  #APC:Armored Personnel Carrier: số lượng xe bọc thép sử dụng vận chuyển nhân viên và thiết bị trong các khu vực chiến đấu.
+  #field artillery: số lượng pháo binh dã chiến sử dụng để hỗ trợ quân đội trên chiến trường
+  #MRL:Multiple Rocket Launcher: số lượng hệ thống bệ phóng tên lửa sử dụng ht pháo phản lực để bắn tên lữa
+  #military auto: số lượng xe quân sự sử dụng cho hoạt động và vận tải quân sự trên bộ, bao gồm cả phương tiện chiến đấu
+  #fuel tank: số lượng thùng chứa nhiên liệu cho chất lỏng dễ cháy
+  #drone: số lượng máy bay ko người lái được sử dụng
+  #naval ship: số lượng tàu hải quân sử dụng có khả năng chống chịu thiệt hại và được trang bị hệ thống vũ khí
+  #anti-aircraft warfare:số lượng hệ thống phòng không sử dụng, là bất kỳ cách chiến đấu chống lại máy bay quân sự trong chiến đấu từ mặt đất,
+  #special equipment: số lượng thiết bị đặc biệt đc sử dụng vd hệ thống radar, vũ khí, vật tư quân sự và thiết bị có thể dễ dàng sử dụng cho mục đích quân sự
+  #mobile SRBM system:số lượng tên lữa đạn đạo tầm ngắn sử dụng
+  #greatest losses direction: nơi tổn thất lớn nhất
+  #vehicles and fuel tanks: xe và thùng nhiên liệu sử dụng
+  #cruise missiles:số lượng tên lữa hành trình sử dụng
+  # Personnel: số lượng quân lính Nga,
+  # Prisoner of War: số lượng người lính Nga bị giam giữ ngay sau một cuộc xung đột vũ trang.
+  
+  # Các từ viết tắt
+  # APC - Tàu chở quân bọc thép,
+  # Máy bay không người lái: UAV - Máy bay không người lái, RPA - Phương tiện được điều khiển từ xa,
+  # MRL - Nhiều tên lửa phóng,
+  # POW- Tù nhân chiến tranh,
+  # SRBM - Tên lửa đạn đạo tầm ngắn.
+  
+  
+  
+  view(dt1)
+  view(dt2)
+  
+  # show all colname in dataset
+  colnames(dt1)
+  
+  nrow(dt1)
+  ncol(dt1)
+  #tom tat tap du lieu
+  summary(dt1)
+  
+  any(is.na(dt1))
+  any(is.na(dt2))
+  
+  
+  
+  
+  # 1.2 Loại bỏ thay thế các giá trị missing value
+  
+  #Set NA to 0 in mobile SRBM system
+  dt1$mobile.SRBM.system[is.na(dt1$mobile.SRBM.system)] <- 0 
+  
+  #Replace NA with maxmimum in POW
+  dt2$POW[is.na(dt2$POW)] <- 496
+  
+  # Replace any other NA present with 0
+  dt1[is.na(dt1)] <- 0
+  dt2[is.na(dt2)] <- 0
+  
+  view(dt1)
+  view(dt2)
+  
+  # 2.Thống kê các số liệu liên quan
+  
+  
+  mergeDataset <- merge(dt3, dt1, by = "date", all.x=TRUE,all.y=TRUE)
+  mergeDataset <- mergeDataset[complete.cases(mergeDataset), ]
+  View(mergeDataset)
+
+  #  find top 5 area most area by died quantity
+  top5died <- head(mergeDataset[order(mergeDataset$died, decreasing = TRUE),], 5)
+  top5died[c(2, 18)]
+  
+  # find top 5 area most area by injured quantity
+  top5injured <- head(mergeDataset[order(mergeDataset$injured, decreasing = TRUE),], 5)
+  top5injured[c(3, 18)]
+
+  #(head(): show ra n rows dau tien)
+  #the most died days
+  day1 <- head(mergeDataset[order(mergeDataset$died, decreasing = TRUE),], 1)
+  day1[c(1, 2)]
+  #at least died days
+  day2 <- head(mergeDataset[order(mergeDataset$died, decreasing = FALSE),], 1)
+  day2[c(1, 2)]
+  #the most injured days
+  day3 <- head(mergeDataset[order(mergeDataset$injured, decreasing = TRUE),], 1)
+  day3[c(1, 3)]
+  #at least injured days
+  day4 <- head(mergeDataset[order(mergeDataset$injured, decreasing = FALSE),], 1)
+  day4[c(1, 3)]
+
+  #total number of died
+  sum(mergeDataset$died)
+
+  #total number of injured
+  sum(mergeDataset$injured)
+  
+  #total number of personel
+  sum(dt2$personnel)
+  
+  #total number of POW
+  sum(dt2$POW)
+  # 
+  # #select any col 
+  # mergeDataset%>%select(helicopter)
+  # 
+  #total aircraft used
+  sum(mergeDataset$aircraft)
+
+  # total number of injured of each day and add to dataset
+  mergeDataset <- mutate(mergeDataset, total = died + injured)
+
+  # area died more than 10000 people
+  mergeDataset[mergeDataset$died >= 10001, c(1,2, 18)]
+
+  # area injured more than 100000 people
+  mergeDataset[mergeDataset$injured >= 100001, c(1,3, 18)]
+
+  
+  # 2.1 Tạo bảng số liệu thống kê
+  
+  a1 <-sum(dt1$helicopter) / sum(dt1$tank+dt1$helicopter+dt1$drone + dt1$naval.ship  ) * 100
+  
+  a2<-sum(dt1$tank) / sum(dt1$tank+dt1$helicopter+dt1$drone + dt1$naval.ship ) * 100
+  
+  a3<-sum(dt1$drone) / sum(dt1$tank+dt1$helicopter+dt1$drone + dt1$naval.ship ) * 100
+  
+  a4<-sum(dt1$naval.ship) / sum(dt1$tank+dt1$helicopter+dt1$drone + dt1$naval.ship ) * 100
+  
+  a5 <-sum(dt1$helicopter)
+  a6<-sum(dt1$tank)
+  a7<-sum(dt1$drone)
+  a8<-sum(dt1$naval.ship)
+  
+  
+  data= matrix(c(a1, a2, a3, a4), ncol=4, byrow=TRUE)
+  colnames(data) <- c('tank','helicopter','drone','ship')
+  
+  quanity<- c(a5, a6,a7,a8)
+  data1 <- rbind(data, quanity)
+  data1
+  rownames(data) <- c('percent')
+  
+  final=as.table(data)
+  final
+  
+  
+  # 2.2 Vẽ các biểu đồ minh họa
+  #bieudo
+  hist(mergeDataset$died)
+  hist(mergeDataset$injured)
+  hist(dt2$personnel)
+  hist(dt2$POW)
+  
+  #location
+  city <- unlist(strsplit(dt$greatest.losses.direction, ","))
+  city<- gsub(" ", "", city)
+  city<- unlist(strsplit(city, "and"))
+  location <- as.data.frame(table(city))
+  location$city <- as.character(location$city)
+  
+  register_google(key = "AIzaSyBq9XoYLGnsq8jCToodjoHT6o-CvpirLQY", write = TRUE)
+  
+  latlong <- geocode(location$city)
+  location <- cbind(location, latlong) %>% dplyr::rename(long = lon)
+  location
 
   output$plot5 <- renderPlot(
     plot4
@@ -261,35 +432,7 @@ server <- function(input, output) {
   })
   
   
-    head(dt1)
-    head(dt2)
-    
-    
-    any(is.na(dt1))
-    any(is.na(dt2))
-    
-
-    #Set NA to 0 in mobile SRBM system
-    dt$mobile.SRBM.system[is.na(dt$mobile.SRBM.system)] <- 0 
-    
-    #Replace NA with maxmimum in POW
-    dt$POW[is.na(dt$POW)] <- 496
-    
-    # Replace any other NA present with 0
-    dt[is.na(dt)] <- 0
-    
-    #location
-    city <- unlist(strsplit(dt$greatest.losses.direction, ","))
-    city<- gsub(" ", "", city)
-    city<- unlist(strsplit(city, "and"))
-    location <- as.data.frame(table(city))
-    location$city <- as.character(location$city)
-    
-    register_google(key = "AIzaSyBq9XoYLGnsq8jCToodjoHT6o-CvpirLQY", write = TRUE)
-    
-    latlong <- geocode(location$city)
-    location <- cbind(location, latlong) %>% dplyr::rename(long = lon)
-    location
+   
     
     #hit cities
     Ukraine<-getData("GADM", country="UA", level=0)
