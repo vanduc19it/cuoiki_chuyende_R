@@ -81,6 +81,12 @@ ui <- dashboardPage(
                     tabPanel("Death & prisoners",
                              box(collapsible =TRUE,plotOutput("plot11")),
                              box(collapsible =TRUE,plotOutput("plot5")),
+
+                    ),
+                    tabPanel("Scatter plot",
+                             box(collapsible =TRUE,plotOutput("plot13")),
+                             box(collapsible =TRUE,plotOutput("plot14")),
+
                     ),
               
                   )
@@ -134,6 +140,7 @@ ui <- dashboardPage(
                 'Table',
                 
                 box(width=10,collapsible =TRUE,DT::dataTableOutput("location")),
+               
                 
               ),
               
@@ -282,6 +289,7 @@ server <- function(input, output) {
   
   # 2.1 Tạo bảng số liệu thống kê
   
+  # thống kê số lượng sử dụng các thiết bị trên tống số tất cả tb
   a1 <-sum(dt1$helicopter) / sum(dt1$tank+dt1$helicopter+dt1$drone + dt1$naval.ship  ) * 100
   
   a2<-sum(dt1$tank) / sum(dt1$tank+dt1$helicopter+dt1$drone + dt1$naval.ship ) * 100
@@ -306,6 +314,7 @@ server <- function(input, output) {
   
   final=as.table(data)
   final
+  final <- as.data.frame(table(final))
   
   
   # 2.2 Vẽ các biểu đồ minh họa
@@ -317,9 +326,13 @@ server <- function(input, output) {
   
   #location
   city <- unlist(strsplit(dt$greatest.losses.direction, ","))
+  
   city<- gsub(" ", "", city)
+  
   city<- unlist(strsplit(city, "and"))
+  
   location <- as.data.frame(table(city))
+  location
   location$city <- as.character(location$city)
   
   register_google(key = "AIzaSyBq9XoYLGnsq8jCToodjoHT6o-CvpirLQY", write = TRUE)
@@ -327,6 +340,7 @@ server <- function(input, output) {
   latlong <- geocode(location$city)
   location <- cbind(location, latlong) %>% dplyr::rename(long = lon)
   location
+  
 
   output$plot5 <- renderPlot(
     plot4
@@ -335,6 +349,7 @@ server <- function(input, output) {
   output$plot11 <- renderPlot(
     plot3
   )
+
   
  # plot air equipment loss
   output$plot6 <- renderPlot({
@@ -449,6 +464,7 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(size=18),
             axis.text.y = element_text(size=18),
             title= element_text(size=30, face="bold"))
+    
     plot100 <- ggplot(location, aes(Freq, reorder(city, Freq), alpha=0.1))+
       geom_col(size=1, col="red")+
       labs(title="Number of Times Attacked", x="", y="")+
@@ -507,6 +523,68 @@ server <- function(input, output) {
       plot100
     )
     
+    
+    ##Scatter plot
+    # vẽ biểu đồ phân tán thể hiện mối liên quan giữa 2 cột
+
+  
+    output$plot13 <- renderPlot({
+
+      dt1 %>%
+        dplyr::select(c('tank','fuel.tank'))%>%
+        ggplot(aes(x=tank,y=fuel.tank))+
+        geom_point()+
+        geom_smooth(method = "lm",  se=T)+
+        labs(title = 'TANK AND FUEL.TANK ARE POSITIVELY CORRELATED')
+
+    }
+     
+    )
+    output$plot14 <- renderPlot({
+      mergeDataset1 <- merge(dt2, dt1, by = "date", all.x=TRUE,all.y=TRUE)
+      mergeDataset1 <- mergeDataset1[complete.cases(mergeDataset1), ]
+      view(mergeDataset1)
+      mergeDataset1 %>%
+        dplyr::select(c('personnel','aircraft'))%>%
+        ggplot(aes(x=personnel,y=aircraft))+
+        geom_point()+
+        geom_smooth(method = "lm",  se=T)+
+        labs(title = 'personnel AND aircraft are positively correlated')
+      
+    }
+    
+    )
+  
+    
+    fuel.tank  <- dt1$fuel.tank
+    tank <- dt1$tank
+    
+    library(ggpubr)
+    ggscatter(data=dt1, x="fuel.tank", y="tank")+
+      geom_smooth(method="lm", se=T)+ #đường hồi quy tuyến tính, se: sai số
+      xlab("helicopter")
+      ylab("tank")
+    
+    #phân tichs hoi quy tuyen tinh
+    lm <- lm(fuel.tank~tank, data=dt1)
+   
+    
+    summary(lm) #hiển thị kq ptich
+    anova(lm) #phantich phuong sai
+    
+    coef(lm) #tinh héso hoi quy
+    fitted.values(lm) #xác dinh gtri y du doan tuong ung gtri x
+    residuals(lm) # tinh sai so
+    
+    library(broom)
+    augment(lm)
+    
+    new_data<- data.frame(helicopter)
+    new_data
+    predict(lm, new_data) #dung predict de du doan dau ra của mo hinh hoi quy tuyen tinh lm
+
+    
+    
     #làm sạch dữ liệu
     clean_data <- reactive({
       na.omit(dt1)
@@ -533,9 +611,14 @@ server <- function(input, output) {
     output$data <- DT::renderDataTable({
       clean_data()[, input$show_vars1, drop = FALSE]
     })
+    #total days attack
     #hàm hiển thị bảng location
     output$location <- DT::renderDataTable({
       location
+    })
+    #hàm hiển thị bảng location
+    output$abcd <- DT::renderDataTable({
+      final
     })
     #hàm hiển thị cấu trúc dữ liệu
     output$cl <- renderPrint({
